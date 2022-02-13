@@ -7,6 +7,7 @@ use LWP::Simple;
 use LWP::UserAgent;
 use File::Basename;
 use Sys::Hostname;
+use XML::Writer;
 
 Getopt::Long::Configure ("bundling");
 
@@ -59,7 +60,7 @@ sub proc_file {
 		if (!($fExt =~ m/\.xml/i)) {
 			$xmlBuilder .= "</checkresults>";
 		}
-        return $xmlBuilder;	
+		return $xmlBuilder;
 	} else {
 		print "Unable to find the specified file.\n";
 		exit;
@@ -76,13 +77,13 @@ sub proc_terminal {
 	my $xmlBuilder = "<?xml version='1.0'?>\n<checkresults>\n";
 	if (scalar(@aryInput) == 4) {
         	my($strHostname, $strState, $strOutput, $bCheckType) = @aryInput;
-            $xmlBuilder .= generate_host_check($strHostname, $strState, $strOutput, $bCheckType);
+		$xmlBuilder .= generate_host_check($strHostname, $strState, $strOutput, $bCheckType);
         } elsif (scalar(@aryInput) == 5) {
-            my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @aryInput;
-            $xmlBuilder .= generate_service_check($strHostname, $strService, $strState, $strOutput, $bCheckType);
+		my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @aryInput;
+		$xmlBuilder .= generate_service_check($strHostname, $strService, $strState, $strOutput, $bCheckType);
         } else {
-            print "Input is incorrectly formatted, can't parse fields\n";
-			help();
+		print "Input is incorrectly formatted, can't parse fields\n";
+		help();
         }
 	$xmlBuilder .= "</checkresults>";
     return $xmlBuilder;
@@ -92,14 +93,17 @@ sub proc_terminal {
 sub generate_service_check {
 	my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @_;
 	my $intState = validate_state($strState);
-	(my $xmlBuilder = <<CHECKXML) =~ s/^\s+//gm;
-		<checkresult type='service' checktype='$bCheckType'>
-			<hostname>$strHostname</hostname>
-			<servicename>$strService</servicename>
-			<state>$intState</state>
-			<output>$strOutput</output>
-		</checkresult>
-CHECKXML
+	my $xmlBuilder = '';
+	my $writer = new XML::Writer(OUTPUT => \$xmlBuilder, NEWLINES => 0);
+
+	$writer->startTag('checkresult', 'type' => 'service', checktype => $bCheckType);
+	$writer->dataElement('hostname', $strHostname);
+	$writer->dataElement('servicename', $strService);
+	$writer->dataElement('state', $intState);
+	$writer->dataElement('output', $strOutput);
+	$writer->endTag('checkresult');
+	$writer->end();
+
 	return $xmlBuilder;
 }
 
@@ -107,13 +111,16 @@ CHECKXML
 sub generate_host_check {
 	my($strHostname,  $strState, $strOutput, $bCheckType) = @_;
 	my $intState = validate_state($strState);
-	(my $xmlBuilder = <<CHECKXML) =~ s/^\s+//gm;
-		<checkresult type='service' checktype='$bCheckType'>
-			<hostname>$strHostname</hostname>
-			<state>$intState</state>
-			<output>$strOutput</output>
-		</checkresult>
-CHECKXML
+        my $xmlBuilder = '';
+        my $writer = new XML::Writer(OUTPUT => \$xmlBuilder, NEWLINES => 0);
+
+	$writer->startTag('checkresult', 'type' => 'host', 'checktype' => $bCheckType);
+	$writer->dataElement('hostname', $strHostname);
+	$writer->dataElement('state', $intState);
+	$writer->dataElement('output', $strOutput);
+	$writer->endTag('checkresult');
+	$writer->end();
+
 	return $xmlBuilder;
 }
 
@@ -153,7 +160,7 @@ sub post_data {
 }
 
 sub help {
-	my $strVersion = "v1.2 b250313";
+	my $strVersion = "v1.2 b130222";
 	my $strNRDPVersion = "1.2";
 	print "\nPerl NRDP sender version: $strVersion for NRDP version: $strNRDPVersion\n";
 	print "By John Murphy <john.murphy\@roshamboot.org>, GNU GPL License\n";
@@ -211,21 +218,21 @@ GetOptions("u=s" => \$strURL, 		"url=s" => \$strURL,
            "d=s" => \$chrDelim, 	"delim=s" => \$chrDelim,
            "c=i" => \$bCheckType, 	"checktype=i" => \$bCheckType,
            "f=s" => \$strFile, 		"file=s" => \$strFile,
-		   "i" => \$stdReadTerm,	"input" => \$stdReadTerm,
-	       "h" => \$oHelp, 			"help" => \$oHelp) or help();
+           "i" => \$stdReadTerm,	"input" => \$stdReadTerm,
+           "h" => \$oHelp, 		"help" => \$oHelp) or help();
 
 if (defined $oHelp) {
 	help();
 }
 
 if (!$strURL || !$strToken) {
-    print "You must set a URL and Token.\n";
-    help();
+	print "You must set a URL and Token.\n";
+	help();
 }
 
 # Can't accept newline chars as a delimiter and escape punctuation chars so regex doesn't interpret them literally.
 if (!$chrDelim) {
-    $chrDelim = "\t";
+	$chrDelim = "\t";
 } elsif ($chrDelim =~ m/\r|\n/) {
 	print "Can't use new line character as a field separator.\n";
 	help();
@@ -234,7 +241,7 @@ if (!$chrDelim) {
 }
 
 if (!$bCheckType) {
-    $bCheckType = 1;
+	$bCheckType = 1;
 }
 
 if (!$strHostname) {
@@ -244,20 +251,20 @@ if (!$strHostname) {
 # Depending on user options build the XML doc to post.
 my $xmlPost;
 if ($strFile) {
-    $xmlPost = proc_file($strFile, $chrDelim);
+	$xmlPost = proc_file($strFile, $chrDelim);
 } elsif (defined $stdReadTerm) {
 	$xmlPost = proc_terminal($chrDelim);
 } elsif ($strHostname && $strState && $strOutput) {
-    $xmlPost = proc_input($strHostname, $strService, $strState, $strOutput, $bCheckType);
+	$xmlPost = proc_input($strHostname, $strService, $strState, $strOutput, $bCheckType);
 } else {
-    print "Incorrect options set.\n";
-    help();
+	print "Incorrect options set.\n";
+	help();
 }
 
 # Post data via NRDP API to Nagios.
 if ($xmlPost) {
-    post_data($strURL, $strToken, $xmlPost);
+	post_data($strURL, $strToken, $xmlPost);
 } else {
-    print "Something has gone horribly wrong! XML build failed, bailing out...";
+	print "Something has gone horribly wrong! XML build failed, bailing out...";
 }
 exit;
