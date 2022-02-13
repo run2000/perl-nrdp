@@ -31,7 +31,7 @@ sub proc_file {
 	if (-e $strFile) {
 		my ($fDir, $fName, $fExt) = fileparse($strFile, qr/\.[^.]*/);
 		my $dataBuilder;
-		my $dataType = 'XMLDATA';
+		my $dataType;
 		my $fileType;
 		my $intLineCount = 0;
 
@@ -109,7 +109,7 @@ sub generate_service_check_xml {
 	my $dataBuilder = '';
 	my $writer = new XML::Writer(OUTPUT => \$dataBuilder, NEWLINES => 0);
 
-	$writer->startTag('checkresult', 'type' => 'service', checktype => $bCheckType);
+	$writer->startTag('checkresult', 'type' => 'service', 'checktype' => $bCheckType);
 	$writer->dataElement('hostname', $strHostname);
 	$writer->dataElement('servicename', $strService);
 	$writer->dataElement('state', $intState);
