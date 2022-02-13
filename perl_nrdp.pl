@@ -15,14 +15,14 @@ Getopt::Long::Configure ("bundling");
 sub proc_input {
 	my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @_;
 	
-	my $xmlBuilder = "<?xml version='1.0'?>\n<checkresults>\n";
+	my $dataBuilder = "<?xml version='1.0'?>\n<checkresults>\n";
 	if (!$strService) {
-		$xmlBuilder .= generate_host_check($strHostname, $strState, $strOutput, $bCheckType);
+		$dataBuilder .= generate_host_check_xml($strHostname, $strState, $strOutput, $bCheckType);
 	} else {
-		$xmlBuilder .= generate_service_check($strHostname, $strService, $strState, $strOutput, $bCheckType);
+		$dataBuilder .= generate_service_check_xml($strHostname, $strService, $strState, $strOutput, $bCheckType);
 	}
-	$xmlBuilder .= "</checkresults>";
-	return $xmlBuilder;
+	$dataBuilder .= "</checkresults>";
+	return ($dataBuilder, 'XMLDATA');
 }
 
 # Process either XML or other formatted file.
@@ -30,37 +30,50 @@ sub proc_file {
 	my($strFile,$chrDelim) = @_;
 	if (-e $strFile) {
 		my ($fDir, $fName, $fExt) = fileparse($strFile, qr/\.[^.]*/);
-		my $xmlBuilder;
-		my $intLineCount = 1;
+		my $dataBuilder;
+		my $dataType = 'XMLDATA';
+		my $fileType;
+		my $intLineCount = 0;
+
+		if ($fExt =~ m/\.xml$/i) {
+			$fileType = 'xml';
+			$dataType = 'XMLDATA';
+		} elsif ($fExt =~ m/\.json$/i) {
+			$fileType = 'json';
+			$dataType = 'json';
+		} else {
+			$fileType = 'delimited';
+			$dataType = 'XMLDATA';
+		}
 		open(FILE, $strFile);
 		while (<FILE>) {
-			if ($fExt =~ m/\.xml/i) {
-				$xmlBuilder .= $_;
+			if (($fileType eq 'xml') || ($fileType eq 'json')) {
+				$dataBuilder .= $_;
 			} else {
-				if (!$xmlBuilder) {
-					$xmlBuilder = "<?xml version='1.0'?>\n<checkresults>\n";
+				if ($intLineCount == 0) {
+					$dataBuilder = "<?xml version='1.0'?>\n<checkresults>\n";
 				}
+				$intLineCount++;
 				my $line = $_;
 				$line =~ s/^\s+|\s+$//g;
-				my @aryLine = split($chrDelim, $line);
+				my @aryLine = split($chrDelim, $line, 6);
 				if (scalar(@aryLine) == 4) {
 					my($strHostname, $strState, $strOutput, $bCheckType) = @aryLine;
-					$xmlBuilder .= generate_host_check($strHostname, $strState, $strOutput, $bCheckType);
+					$dataBuilder .= generate_host_check_xml($strHostname, $strState, $strOutput, $bCheckType);
 				} elsif (scalar(@aryLine) == 5) {
 					my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @aryLine;
-					$xmlBuilder .= generate_service_check($strHostname, $strService, $strState, $strOutput, $bCheckType);
+					$dataBuilder .= generate_service_check_xml($strHostname, $strService, $strState, $strOutput, $bCheckType);
 				} else {
 					print "Line $intLineCount is incorrectly formatted, can't parse fields\n";
-					$intLineCount++;
 					next; 
 				}
 			}
 		}
 		close(FILE);
-		if (!($fExt =~ m/\.xml/i)) {
-			$xmlBuilder .= "</checkresults>";
+		if (($fileType eq 'delimited') && ($intLineCount > 0)) {
+			$dataBuilder .= "</checkresults>";
 		}
-		return $xmlBuilder;
+		return ($dataBuilder, $dataType);
 	} else {
 		print "Unable to find the specified file.\n";
 		exit;
@@ -73,28 +86,28 @@ sub proc_terminal {
 	print "Enter check details: \n";
 	my $stdRead = <>;
 	$stdRead =~ s/^\s+|\s+$//g;
-	my @aryInput = split($chrDelim, $stdRead);
-	my $xmlBuilder = "<?xml version='1.0'?>\n<checkresults>\n";
+	my @aryInput = split($chrDelim, $stdRead, 6);
+	my $dataBuilder = "<?xml version='1.0'?>\n<checkresults>\n";
 	if (scalar(@aryInput) == 4) {
         	my($strHostname, $strState, $strOutput, $bCheckType) = @aryInput;
-		$xmlBuilder .= generate_host_check($strHostname, $strState, $strOutput, $bCheckType);
+		$dataBuilder .= generate_host_check_xml($strHostname, $strState, $strOutput, $bCheckType);
         } elsif (scalar(@aryInput) == 5) {
 		my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @aryInput;
-		$xmlBuilder .= generate_service_check($strHostname, $strService, $strState, $strOutput, $bCheckType);
+		$dataBuilder .= generate_service_check_xml($strHostname, $strService, $strState, $strOutput, $bCheckType);
         } else {
 		print "Input is incorrectly formatted, can't parse fields\n";
 		help();
         }
-	$xmlBuilder .= "</checkresults>";
-    return $xmlBuilder;
+	$dataBuilder .= "</checkresults>";
+    return ($dataBuilder, 'XMLDATA');
 }
 
 # Build a single service-check XML element.
-sub generate_service_check {
+sub generate_service_check_xml {
 	my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @_;
 	my $intState = validate_state($strState);
-	my $xmlBuilder = '';
-	my $writer = new XML::Writer(OUTPUT => \$xmlBuilder, NEWLINES => 0);
+	my $dataBuilder = '';
+	my $writer = new XML::Writer(OUTPUT => \$dataBuilder, NEWLINES => 0);
 
 	$writer->startTag('checkresult', 'type' => 'service', checktype => $bCheckType);
 	$writer->dataElement('hostname', $strHostname);
@@ -104,15 +117,15 @@ sub generate_service_check {
 	$writer->endTag('checkresult');
 	$writer->end();
 
-	return $xmlBuilder;
+	return $dataBuilder;
 }
 
 # Build a single host-check XML element.
-sub generate_host_check {
+sub generate_host_check_xml {
 	my($strHostname,  $strState, $strOutput, $bCheckType) = @_;
 	my $intState = validate_state($strState);
-        my $xmlBuilder = '';
-        my $writer = new XML::Writer(OUTPUT => \$xmlBuilder, NEWLINES => 0);
+        my $dataBuilder = '';
+        my $writer = new XML::Writer(OUTPUT => \$dataBuilder, NEWLINES => 0);
 
 	$writer->startTag('checkresult', 'type' => 'host', 'checktype' => $bCheckType);
 	$writer->dataElement('hostname', $strHostname);
@@ -121,7 +134,7 @@ sub generate_host_check {
 	$writer->endTag('checkresult');
 	$writer->end();
 
-	return $xmlBuilder;
+	return $dataBuilder;
 }
 
 sub validate_state {
@@ -142,20 +155,20 @@ sub validate_state {
 }
 
 sub post_data {
-	my($strURL, $strToken, $xmlPost) = @_;
+	my($strURL, $strToken, $postContent, $dataType) = @_;
 	my $httpAgent = LWP::UserAgent->new;
 	
 	my $httpResponse = $httpAgent->post( $strURL,
 	[
 		'token' => $strToken,
 		'cmd' => 'submitcheck',
-		'XMLDATA' => $xmlPost
+		$dataType => $postContent
 	],);
 	
 	if (!$httpResponse->is_success) {
 		print "ERROR - NRDP Returned: " . $httpResponse->status_line . " " . $httpResponse->content;
 	}
-	print "$xmlPost\n\n" . $httpResponse->is_success . "\n" . $httpResponse->status_line . "\n" . $httpResponse->content . "\n";
+	print "$postContent\n\n" . $httpResponse->is_success . "\n" . $httpResponse->status_line . "\n" . $httpResponse->content . "\n";
 	exit;
 }
 
@@ -249,21 +262,21 @@ if (!$strHostname) {
 }
 
 # Depending on user options build the XML doc to post.
-my $xmlPost;
+my ($postContent, $dataType);
 if ($strFile) {
-	$xmlPost = proc_file($strFile, $chrDelim);
+	($postContent, $dataType) = proc_file($strFile, $chrDelim);
 } elsif (defined $stdReadTerm) {
-	$xmlPost = proc_terminal($chrDelim);
+	($postContent, $dataType) = proc_terminal($chrDelim);
 } elsif ($strHostname && $strState && $strOutput) {
-	$xmlPost = proc_input($strHostname, $strService, $strState, $strOutput, $bCheckType);
+	($postContent, $dataType) = proc_input($strHostname, $strService, $strState, $strOutput, $bCheckType);
 } else {
 	print "Incorrect options set.\n";
 	help();
 }
 
 # Post data via NRDP API to Nagios.
-if ($xmlPost) {
-	post_data($strURL, $strToken, $xmlPost);
+if ($postContent && $dataType) {
+	post_data($strURL, $strToken, $postContent, $dataType);
 } else {
 	print "Something has gone horribly wrong! XML build failed, bailing out...";
 }
