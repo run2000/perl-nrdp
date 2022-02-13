@@ -35,9 +35,10 @@ Defaults to tab (\\t).
 -c, –checktype  
 Used to specify active or passive, 0 = active, 1 = passive. Defaults to passive.  
 -f, –file  
-Use this switch to specify the full path to a file to read. There are two usable formats:  
-1. A field-delimited text file, where the delimiter is specified by -d  
-2. An XML file in NRDP input format. An example can be found by browsing to the NRDP URL.  
+Use this switch to specify the full path to a file to read. There are three usable formats:
+    1. A field-delimited text file, where the delimiter is specified by -d
+    2. An XML file in NRDP input format. An example can be found by browsing to the NRDP URL.
+    3. A JSON file in NRDP input format. An example can be found by browsing to the NRDP URL.
 -i, –input  
 This switch specifies that you wish to input the check via standard input on the command line.  
 -h, –help  

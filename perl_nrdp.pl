@@ -106,6 +106,7 @@ sub proc_terminal {
 sub generate_service_check_xml {
 	my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @_;
 	my $intState = validate_state($strState);
+	validate_checktype($bCheckType);
 	my $dataBuilder = '';
 	my $writer = new XML::Writer(OUTPUT => \$dataBuilder, NEWLINES => 0);
 
@@ -124,6 +125,7 @@ sub generate_service_check_xml {
 sub generate_host_check_xml {
 	my($strHostname,  $strState, $strOutput, $bCheckType) = @_;
 	my $intState = validate_state($strState);
+	validate_checktype($bCheckType);
         my $dataBuilder = '';
         my $writer = new XML::Writer(OUTPUT => \$dataBuilder, NEWLINES => 0);
 
@@ -152,6 +154,16 @@ sub validate_state {
 	}
 
 	return $hshValidStates{$strState};
+}
+
+sub validate_checktype {
+	my $checkType = $_[0];
+
+	if (($checkType ne '0') && ($checkType ne '1')) {
+		print "Invalid checktype specified.\n";
+		help();
+	}
+	return $checkType;
 }
 
 sub post_data {
@@ -198,9 +210,10 @@ sub help {
 -c, --checktype
 	Used to specify active or passive, 0 = active, 1 = passive. Defaults to passive.
 -f, --file
-	Use this switch to specify the full path to a file to read. There are two usable formats:
+	Use this switch to specify the full path to a file to read. There are three usable formats:
 	1. A field-delimited text file, where the delimiter is specified by -d
-	2. An XML file in NRDP input format. An example can be found by browsing to the NRDP API URL. 
+	2. An XML file in NRDP input format. An example can be found by browsing to the NRDP API URL.
+	3. A JSON file in NRDP input format. An example can be found by browsing to the NRDP API URL.
 -i, --input
 	This switch specifies that you wish to input the check via standard input on the command line.
 -h, --help
