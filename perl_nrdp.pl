@@ -256,6 +256,9 @@ if (!$strURL || !$strToken) {
 	help();
 }
 
+# Ensure URL ends with a trailing / character
+$strURL =~ s!/?$!/!;
+
 # Can't accept newline chars as a delimiter and escape punctuation chars so regex doesn't interpret them literally.
 if (!$chrDelim) {
 	$chrDelim = "\t";
