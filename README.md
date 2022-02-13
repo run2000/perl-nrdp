@@ -1,21 +1,35 @@
-Description:  
-This is a cross-platform Perl version of the official send_nrdp.py and send_nrdp.sh clients for Nagios NRDP. This plugin uses only the standard Perl libs and should work on any OS; it has however been tested to work on Linux and Windows with active state Perl.  
+Description
+-----------
+This is a cross-platform Perl version of the official send_nrdp.py and send_nrdp.sh clients for Nagios NRDP. This plugin uses only standard Perl libs available through CPAN and should work on any OS; it has however been tested to work on Linux and Windows with active state Perl.
 
 This plugin was designed to function as close as possible to the original send_nrdp clients.
 
-Download:  
-http://roshamboot.org/main/wp-content/uploads/2013/02/perl_nrdp.zip
+Source Code
+-----------
+https://github.com/run2000/perl-nrdp/
 
-Known Issues:  
-None
+Known Issues
+------------
 
-Patch Notes:  
+ - Exit code is always 0.
+ - stdout output resembles debugging.
+
+Patch Notes
+-----------
+v1.3:
+ - Allow JSON format to be sent to NRDP server.
+ - Validation of checktype.
+ - XML encoding fixes.
+
 v1.2:
-- Minor efficiency improvements.
+ - Minor efficiency improvements.
+
 v1.1:
-- Fixed un-escaped character issue that prevented script working on some versions of Perl.
+ - Fixed un-escaped character issue that prevented script working on some versions of Perl.
  
-Usage:  
+Usage
+-----
+
 -u, –url  
 The URL used to access the remote NRDP agent. i.e. http://nagiosip/nrdp/ **REQUIRED**  
 -t, –token  

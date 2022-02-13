@@ -185,7 +185,7 @@ sub post_data {
 }
 
 sub help {
-	my $strVersion = "v1.2 b130222";
+	my $strVersion = "v1.3 b130222";
 	my $strNRDPVersion = "1.2";
 	print "\nPerl NRDP sender version: $strVersion for NRDP version: $strNRDPVersion\n";
 	print "By John Murphy <john.murphy\@roshamboot.org>, GNU GPL License\n";
