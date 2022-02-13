@@ -16,30 +16,32 @@ v1.1:
 - Fixed un-escaped character issue that prevented script working on some versions of Perl.
  
 Usage:  
--u, –url  
+-u, â€“url  
 The URL used to access the remote NRDP agent. i.e. http://nagiosip/nrdp/ **REQUIRED**  
--t, –token  
+-t, â€“token  
 The authentication token used to access the remote NRDP agent. **REQUIRED**  
--H, –hostname  
+-H, â€“hostname  
 The name of the host associated with the passive host/service check result.
 This script will attempt to learn the hostname if not supplied.  
--s, –service  
+-s, â€“service  
 For service checks, the name of the service associated with the passive check result.  
--S, –state  
+-S, â€“state  
 The state of the host or service. Valid values are: OK, CRITICAL, WARNING, UNKNOWN  
--o, –output  
+-o, â€“output  
 Text output to be sent as the passive check result.  
--d, –delim  
+-d, â€“delim  
 Used to set the text field delimiter when using non-XML file input or command-line input.
 Defaults to tab (\\t).  
--c, –checktype  
+-c, â€“checktype  
 Used to specify active or passive, 0 = active, 1 = passive. Defaults to passive.  
--f, –file  
+-f, â€“file  
 Use this switch to specify the full path to a file to read. There are three usable formats:
-    1. A field-delimited text file, where the delimiter is specified by -d
-    2. An XML file in NRDP input format. An example can be found by browsing to the NRDP URL.
-    3. A JSON file in NRDP input format. An example can be found by browsing to the NRDP URL.
--i, –input  
+
+  1. A field-delimited text file, where the delimiter is specified by -d
+  2. An XML file in NRDP input format. An example can be found by browsing to the NRDP URL.
+  3. A JSON file in NRDP input format. An example can be found by browsing to the NRDP URL.
+
+-i, â€“input  
 This switch specifies that you wish to input the check via standard input on the command line.  
--h, –help  
+-h, â€“help  
 Display this help text. 
