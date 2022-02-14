@@ -57,6 +57,6 @@ Use this switch to specify the full path to a file to read. There are three usab
 -i, –input  
 This switch specifies that you wish to input the check via standard input on the command line.  
 -v, –verbose  
-This switch enables verbose mode. This writes out the request and response content.  
+This switch enables verbose mode. This writes out the request and response content from HTTP.  
 -h, –help  
 Display this help text. 
