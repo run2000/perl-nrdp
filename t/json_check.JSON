@@ -1,0 +1,21 @@
+{
+    "checkresults": [
+        {
+            "checkresult": {
+                "type": "host"
+            },
+            "hostname": "marina",
+            "state": "0",
+            "output": "Everything looks okay! | perfdata=1;"
+        },
+        {
+            "checkresult": {
+                "type": "service"
+            },
+            "hostname": "marina",
+            "servicename": "PING",
+            "state": "1",
+            "output": "WARNING: Danger Will Robinson! | perfdata=1;"
+        }
+    ]
+}

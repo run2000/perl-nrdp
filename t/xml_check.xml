@@ -1,0 +1,14 @@
+<?xml version='1.0'?>
+<checkresults>
+    <checkresult type='host'>
+        <hostname>marina</hostname>
+        <state>0</state>
+        <output>Everything looks okay! | perfdata=1;</output>
+    </checkresult>
+    <checkresult type='service'>
+        <hostname>marina</hostname>
+        <servicename>PING</servicename>
+        <state>1</state>
+        <output>WARNING: Danger Will Robinson! | perfdata=1;</output>
+    </checkresult>
+</checkresults>
