@@ -9,6 +9,12 @@ use File::Basename;
 use Sys::Hostname;
 use XML::Writer;
 
+use constant {
+	USER_AGENT => 'PerlNrdp/',
+	CLIENT_VERSION => '1.3b140222',
+	NRDP_VERSION => '1.5',
+};
+
 Getopt::Long::Configure ("bundling");
 
 # Process command line switch input.
@@ -169,6 +175,7 @@ sub validate_checktype {
 sub post_data {
 	my($strURL, $strToken, $postContent, $dataType, $verbose) = @_;
 	my $httpAgent = LWP::UserAgent->new;
+	$httpAgent->agent(USER_AGENT . CLIENT_VERSION);
 	
 	my $httpResponse = $httpAgent->post( $strURL,
 	[
@@ -214,8 +221,8 @@ sub post_data {
 
 sub help {
 	my $exitCode = $_[0] || 0;
-	my $strVersion = "v1.3 b140222";
-	my $strNRDPVersion = "1.5";
+	my $strVersion = 'v' . CLIENT_VERSION;
+	my $strNRDPVersion = NRDP_VERSION;
 	print "\nPerl NRDP sender version: $strVersion for NRDP version: $strNRDPVersion\n";
 	print "By John Murphy <john.murphy\@roshamboot.org>, GNU GPL License\n";
 	print "\nUsage: ./perl_nrdp.pl -u <Nagios NRDP URL> -t <Token> [-H <Hostname> -S <State> -o <Information|Perfdata> [-s <service name> -c <0/1>] | -f <File path> [-d <Field delimiter>] | -i [-d <Field delimiter> ]]\n\n";
