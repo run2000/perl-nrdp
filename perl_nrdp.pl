@@ -10,8 +10,8 @@ use Sys::Hostname;
 use XML::Writer;
 
 use constant {
-	USER_AGENT => 'PerlNrdp/',
-	CLIENT_VERSION => '1.3b140222',
+	USER_AGENT => 'perl_nrdp/',
+	CLIENT_VERSION => '1.3b150222',
 	NRDP_VERSION => '1.5',
 };
 
