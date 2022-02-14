@@ -40,7 +40,7 @@ sub proc_file {
 			$dataType = 'XMLDATA';
 		} elsif ($fExt =~ m/\.json$/i) {
 			$fileType = 'json';
-			$dataType = 'json';
+			$dataType = 'JSONDATA';
 		} else {
 			$fileType = 'delimited';
 			$dataType = 'XMLDATA';
@@ -64,7 +64,7 @@ sub proc_file {
 					my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @aryLine;
 					$dataBuilder .= generate_service_check_xml($strHostname, $strService, $strState, $strOutput, $bCheckType);
 				} else {
-					print "Line $intLineCount is incorrectly formatted, can't parse fields\n";
+					print "WARNING - Line $intLineCount is incorrectly formatted, can't parse fields. Continuing...\n";
 					next; 
 				}
 			}
@@ -75,8 +75,8 @@ sub proc_file {
 		}
 		return ($dataBuilder, $dataType);
 	} else {
-		print "Unable to find the specified file.\n";
-		exit;
+		print "ERROR - Unable to find the specified file.\n";
+		exit 1;
 	}
 }
 
@@ -95,8 +95,8 @@ sub proc_terminal {
 		my($strHostname, $strService, $strState, $strOutput, $bCheckType) = @aryInput;
 		$dataBuilder .= generate_service_check_xml($strHostname, $strService, $strState, $strOutput, $bCheckType);
         } else {
-		print "Input is incorrectly formatted, can't parse fields\n";
-		help();
+		print "ERROR - Input is incorrectly formatted, can't parse fields\n";
+		help(1);
         }
 	$dataBuilder .= "</checkresults>";
     return ($dataBuilder, 'XMLDATA');
@@ -149,8 +149,8 @@ sub validate_state {
 
 	$strState = uc($strState);
 	if (! exists $hshValidStates{$strState}) {
-			print "Invalid state specified.\n";
-			help();
+		print "ERROR - Invalid state specified.\n";
+		help(1);
 	}
 
 	return $hshValidStates{$strState};
@@ -160,14 +160,14 @@ sub validate_checktype {
 	my $checkType = $_[0];
 
 	if (($checkType ne '0') && ($checkType ne '1')) {
-		print "Invalid checktype specified.\n";
-		help();
+		print "ERROR - Invalid checktype specified.\n";
+		help(1);
 	}
 	return $checkType;
 }
 
 sub post_data {
-	my($strURL, $strToken, $postContent, $dataType) = @_;
+	my($strURL, $strToken, $postContent, $dataType, $verbose) = @_;
 	my $httpAgent = LWP::UserAgent->new;
 	
 	my $httpResponse = $httpAgent->post( $strURL,
@@ -179,14 +179,43 @@ sub post_data {
 	
 	if (!$httpResponse->is_success) {
 		print "ERROR - NRDP Returned: " . $httpResponse->status_line . " " . $httpResponse->content;
+		exit 3;
 	}
-	print "$postContent\n\n" . $httpResponse->is_success . "\n" . $httpResponse->status_line . "\n" . $httpResponse->content . "\n";
-	exit;
+	my $contentType = $httpResponse->header('Content-Type');
+	my ($status, $message) = (0, '');
+
+	# Quick-n-dirty parse for status and message
+	if ($contentType =~ m!/json\b!) {
+		if ($httpResponse->content =~ m/"status":\s*([0-9-]+)/s) {
+			$status = 0 + $1;
+		}
+		if ($httpResponse->content =~ m/"message":\s*"(.*?)"/s) {
+			$message = $1;
+		}
+	} elsif ($contentType =~ m!/xml\b!) {
+		if ($httpResponse->content =~ m!<status>([0-9-]+)</status>!s) {
+			$status = 0 + $1;
+		}
+		if ($httpResponse->content =~ m!<message>(.*?)</message>!s) {
+			$message = $1;
+		}
+	}
+	if ($verbose) {
+		print "Request:\n$postContent\n";
+		print "Response:\n" . $httpResponse->status_line . "\n" . $httpResponse->content . "\n\n";
+	}
+	if ($status == 0) {
+		print "OK\n";
+	} else {
+		print "ERROR - NRDP Returned: $message\n";
+		exit $status;
+	}
 }
 
 sub help {
-	my $strVersion = "v1.3 b130222";
-	my $strNRDPVersion = "1.2";
+	my $exitCode = $_[0] || 0;
+	my $strVersion = "v1.3 b140222";
+	my $strNRDPVersion = "1.5";
 	print "\nPerl NRDP sender version: $strVersion for NRDP version: $strNRDPVersion\n";
 	print "By John Murphy <john.murphy\@roshamboot.org>, GNU GPL License\n";
 	print "\nUsage: ./perl_nrdp.pl -u <Nagios NRDP URL> -t <Token> [-H <Hostname> -S <State> -o <Information|Perfdata> [-s <service name> -c <0/1>] | -f <File path> [-d <Field delimiter>] | -i [-d <Field delimiter> ]]\n\n";
@@ -216,11 +245,13 @@ sub help {
 	3. A JSON file in NRDP input format. An example can be found by browsing to the NRDP API URL.
 -i, --input
 	This switch specifies that you wish to input the check via standard input on the command line.
+-v, --verbose
+	This switch enables verbose mode. This writes out the request and response content from HTTP.
 -h, --help
 	Display this help text.
 	
 HELP
-	exit;
+	exit $exitCode;
 }
 
 ##############################################
@@ -230,7 +261,7 @@ HELP
 ##############################################
 
 # Initialize and read user input
-my ($strURL, $strToken, $strHostname, $strService, $strState, $strOutput, $chrDelim, $bCheckType, $strFile, $oHelp, $stdReadTerm);
+my ($strURL, $strToken, $strHostname, $strService, $strState, $strOutput, $chrDelim, $bCheckType, $strFile, $oHelp, $stdReadTerm, $bVerbose);
 $oHelp = undef;
 $stdReadTerm = undef;
 $chrDelim = undef;
@@ -245,7 +276,8 @@ GetOptions("u=s" => \$strURL, 		"url=s" => \$strURL,
            "c=i" => \$bCheckType, 	"checktype=i" => \$bCheckType,
            "f=s" => \$strFile, 		"file=s" => \$strFile,
            "i" => \$stdReadTerm,	"input" => \$stdReadTerm,
-           "h" => \$oHelp, 		"help" => \$oHelp) or help();
+           "v" => \$bVerbose,           "verbose" => \$bVerbose,
+           "h" => \$oHelp, 		"help" => \$oHelp) or help(2);
 
 if (defined $oHelp) {
 	help();
@@ -253,7 +285,7 @@ if (defined $oHelp) {
 
 if (!$strURL || !$strToken) {
 	print "You must set a URL and Token.\n";
-	help();
+	help(2);
 }
 
 # Ensure URL ends with a trailing / character
@@ -264,7 +296,7 @@ if (!$chrDelim) {
 	$chrDelim = "\t";
 } elsif ($chrDelim =~ m/\r|\n/) {
 	print "Can't use new line character as a field separator.\n";
-	help();
+	help(2);
 } elsif ($chrDelim =~ m/^[[:punct:]]{1}$/) {
 	$chrDelim = "\\" . $chrDelim;
 }
@@ -287,13 +319,13 @@ if ($strFile) {
 	($postContent, $dataType) = proc_input($strHostname, $strService, $strState, $strOutput, $bCheckType);
 } else {
 	print "Incorrect options set.\n";
-	help();
+	help(2);
 }
 
 # Post data via NRDP API to Nagios.
-if ($postContent && $dataType) {
-	post_data($strURL, $strToken, $postContent, $dataType);
-} else {
-	print "Something has gone horribly wrong! XML build failed, bailing out...";
+if ($postContent) {
+	post_data($strURL, $strToken, $postContent, $dataType, $bVerbose);
+} elsif ($bVerbose) {
+	print "INFO - No data to send, exiting normally.\n";
 }
-exit;
+exit 0;
