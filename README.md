@@ -11,7 +11,7 @@ https://github.com/run2000/perl-nrdp/
 Known Issues
 ------------
 
- - Parsing from NRDP server could be better.
+ - Parsing the response from NRDP server could be better.
 
 Patch Notes
 -----------
