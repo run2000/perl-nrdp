@@ -175,7 +175,9 @@ sub validate_checktype {
 sub post_data {
 	my($strURL, $strToken, $postContent, $dataType, $verbose) = @_;
 	my $httpAgent = LWP::UserAgent->new;
+
 	$httpAgent->agent(USER_AGENT . CLIENT_VERSION);
+	$httpAgent->protocols_allowed(['http', 'https']);
 	
 	my $httpResponse = $httpAgent->post( $strURL,
 	[
@@ -221,9 +223,9 @@ sub post_data {
 
 sub help {
 	my $exitCode = $_[0] || 0;
-	my $strVersion = 'v' . CLIENT_VERSION;
+	my $strVersion = CLIENT_VERSION;
 	my $strNRDPVersion = NRDP_VERSION;
-	print "\nPerl NRDP sender version: $strVersion for NRDP version: $strNRDPVersion\n";
+	print "\nPerl NRDP sender version: v$strVersion for NRDP version: $strNRDPVersion\n";
 	print "By John Murphy <john.murphy\@roshamboot.org>, GNU GPL License\n";
 	print "\nUsage: ./perl_nrdp.pl -u <Nagios NRDP URL> -t <Token> [-H <Hostname> -S <State> -o <Information|Perfdata> [-s <service name> -c <0/1>] | -f <File path> [-d <Field delimiter>] | -i [-d <Field delimiter> ]]\n\n";
 	print <<HELP;
@@ -290,7 +292,7 @@ if (defined $oHelp) {
 	help();
 }
 
-if (!$strURL || !$strToken) {
+if (!defined $strURL || !defined $strToken) {
 	print "You must set a URL and Token.\n";
 	help(2);
 }
@@ -299,7 +301,7 @@ if (!$strURL || !$strToken) {
 $strURL =~ s!/?$!/!;
 
 # Can't accept newline chars as a delimiter and escape punctuation chars so regex doesn't interpret them literally.
-if (!$chrDelim) {
+if (!defined $chrDelim) {
 	$chrDelim = "\t";
 } elsif ($chrDelim =~ m/\r|\n/) {
 	print "Can't use new line character as a field separator.\n";
@@ -308,21 +310,21 @@ if (!$chrDelim) {
 	$chrDelim = "\\" . $chrDelim;
 }
 
-if (!$bCheckType) {
+if (!defined $bCheckType) {
 	$bCheckType = 1;
 }
 
-if (!$strHostname) {
+if (!defined $strHostname) {
 	$strHostname = hostname() or die "Unable to determine hostname, please enter manually";
 }
 
 # Depending on user options build the XML doc to post.
 my ($postContent, $dataType);
-if ($strFile) {
+if (defined $strFile) {
 	($postContent, $dataType) = proc_file($strFile, $chrDelim);
 } elsif (defined $stdReadTerm) {
 	($postContent, $dataType) = proc_terminal($chrDelim);
-} elsif ($strHostname && $strState && $strOutput) {
+} elsif ((defined $strHostname) && (defined $strState) && (defined $strOutput)) {
 	($postContent, $dataType) = proc_input($strHostname, $strService, $strState, $strOutput, $bCheckType);
 } else {
 	print "Incorrect options set.\n";
@@ -330,7 +332,7 @@ if ($strFile) {
 }
 
 # Post data via NRDP API to Nagios.
-if ($postContent) {
+if (defined $postContent) {
 	post_data($strURL, $strToken, $postContent, $dataType, $bVerbose);
 } elsif ($bVerbose) {
 	print "INFO - No data to send, exiting normally.\n";
