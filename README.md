@@ -39,14 +39,14 @@ This script will attempt to learn the hostname if not supplied.
 -s, –service  
 For service checks, the name of the service associated with the passive check result.  
 -S, –state  
-The state of the host or service. Valid values are: OK, CRITICAL, WARNING, UNKNOWN  
+The state of the host or service. Valid values are: `OK`, `CRITICAL`, `WARNING`, `UNKNOWN`  
 -o, –output  
 Text output to be sent as the passive check result.  
 -d, –delim  
 Used to set the text field delimiter when using non-XML file input or command-line input.
 Defaults to tab (\\t).  
 -c, –checktype  
-Used to specify active or passive, 0 = active, 1 = passive. Defaults to passive.  
+Used to specify active or passive, `0` = active, `1` = passive. Defaults to passive.  
 -f, –file  
 Use this switch to specify the full path to a file to read. There are three usable formats:
 
