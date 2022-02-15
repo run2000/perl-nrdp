@@ -51,7 +51,7 @@ sub proc_file {
 			$fileType = 'delimited';
 			$dataType = 'XMLDATA';
 		}
-		open(FILE, $strFile);
+		open(FILE, '<', $strFile);
 		while (<FILE>) {
 			if (($fileType eq 'xml') || ($fileType eq 'json')) {
 				$dataBuilder .= $_;
@@ -235,7 +235,7 @@ sub help {
 	The authentication token used to access the remote NRDP agent.
 -H, --hostname
 	The name of the host associated with the passive host/service check result. 
-	This script will attempt to learn the hostname if not supplied.
+	This script will attempt to determine the hostname if not supplied.
 -s, --service
 	For service checks, the name of the service associated with the passive check result.
 -S, --state
